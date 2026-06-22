@@ -1,8 +1,8 @@
 @echo off
 chcp 65001 >nul
-title Audio Converter - Build Tool
+title WAV Converter - Build Tool
 echo ==========================================
-echo   Audio Converter ^| ^]转换器 - Build Tool
+echo   WAV Converter - Build Tool
 echo   XTS Studio
 echo ==========================================
 echo.
@@ -17,12 +17,13 @@ if errorlevel 1 (
 
 echo.
 echo [2/3] Cleaning old builds...
-if exist build rmdir /s /q build
-if exist dist rmdir /s /q dist
+if exist src\build rmdir /s /q src\build
 
 echo.
 echo [3/3] Building executable...
-pyinstaller src/main.py --onefile --windowed --name "AudioConverter" --add-data "src/i18n;./i18n" --version-file version.txt --clean --noconfirm
+cd src
+pyinstaller app.py --onefile --windowed --name "WAVConverter" --add-data "i18n;./i18n" --hidden-import converter --hidden-import i18n --version-file ..\version.txt --distpath ..\release --clean --noconfirm --paths .
+cd ..
 
 if errorlevel 1 (
     echo ERROR: Build failed
@@ -33,7 +34,7 @@ if errorlevel 1 (
 echo.
 echo ==========================================
 echo   SUCCESS!
-echo   Output: dist\AudioConverter.exe
+echo   Output: release\WAVConverter.exe
 echo.
 echo   Note: Users need ffmpeg to run.
 echo   Place ffmpeg.exe in:

@@ -7,13 +7,12 @@ import json
 import time
 from pathlib import Path
 
-# Add parent dir to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import i18n
 from converter import (
-    check_ffmpeg, INPUT_EXTS, SUPPORTED_FORMATS,
-    get_output_extension, _do_convert
+    check_ffmpeg, INPUT_EXTS,
+    _do_convert
 )
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -193,17 +192,15 @@ class App(ctk.CTk):
         pi = ctk.CTkFrame(pf, fg_color="transparent")
         pi.pack(fill="x", padx=15, pady=(0, 10))
 
-        # format
-        ctk.CTkLabel(pi, text=i18n.t("app.output_format")).grid(
-            row=0, column=0, padx=(0, 5), pady=5, sticky="w")
-        fmt_keys = ["wav", "mp3", "flac", "aac", "ogg", "m4a", "wma"]
-        fmt_labels = [SUPPORTED_FORMATS[k]["name"].lstrip(".").upper() for k in fmt_keys]
-        self._fmt_key_map = dict(zip(fmt_labels, fmt_keys))
-        self.fmt_var = ctk.StringVar(value="WAV")
-        self.fmt_menu = ctk.CTkOptionMenu(
-            pi, values=fmt_labels, width=100, command=self._on_format_change
-        )
-        self.fmt_menu.grid(row=0, column=1, padx=(0, 15), pady=5)
+        # output format badge
+        fmt_frame = ctk.CTkFrame(pi, fg_color="transparent")
+        fmt_frame.grid(row=0, column=0, columnspan=2, padx=(0, 15), pady=5, sticky="w")
+        ctk.CTkLabel(fmt_frame, text="WAV",
+                     font=ctk.CTkFont(size=16, weight="bold"),
+                     text_color="#4CAF50").pack(side="left")
+        ctk.CTkLabel(fmt_frame, text="  (44.1kHz / 16bit PCM)",
+                     font=ctk.CTkFont(size=12),
+                     text_color="gray").pack(side="left")
 
         # sample rate
         ctk.CTkLabel(pi, text=i18n.t("app.sample_rate")).grid(
@@ -217,9 +214,9 @@ class App(ctk.CTk):
         ctk.CTkLabel(pi, text=i18n.t("app.bit_depth")).grid(
             row=0, column=4, padx=(0, 5), pady=5, sticky="w")
         self.bd_var = ctk.StringVar(value="16")
-        self.bd_menu = ctk.CTkOptionMenu(pi, variable=self.bd_var,
-                                         values=["16", "24", "32"], width=80)
-        self.bd_menu.grid(row=0, column=5, padx=(0, 15), pady=5)
+        ctk.CTkOptionMenu(pi, variable=self.bd_var,
+                          values=["16", "24", "32"], width=80
+                          ).grid(row=0, column=5, padx=(0, 15), pady=5)
 
         # channels
         ctk.CTkLabel(pi, text=i18n.t("app.channels")).grid(
@@ -278,8 +275,6 @@ class App(ctk.CTk):
                      font=ctk.CTkFont(size=11), text_color="gray"
                      ).pack(pady=(15, 5))
 
-        self._on_format_change("WAV")
-
     # ── 界面回调 ────────────────────────────────────────
 
     def _on_theme_change(self, value):
@@ -287,13 +282,6 @@ class App(ctk.CTk):
         key_map = {"Dark": "dark", "Light": "light", "System": "system"}
         self.config["theme"] = key_map.get(value, "system")
         save_config(self.config)
-
-    def _on_format_change(self, value):
-        fmt = self._fmt_key_map.get(value, "wav")
-        if fmt == "wav":
-            self.bd_menu.configure(state="normal")
-        else:
-            self.bd_menu.configure(state="disabled")
 
     def _on_close(self):
         self.config["window_width"] = self.winfo_width()
@@ -459,23 +447,20 @@ class App(ctk.CTk):
 
     def _convert_worker(self):
         total = len(self.input_files)
-        fmt_label = self.fmt_menu.get()
-        fmt = self._fmt_key_map.get(fmt_label, "wav")
         sr = self.sr_var.get()
         bd = self.bd_var.get()
         ch = self.ch_var.get()
 
         params = {
             "sample_rate": sr,
-            "output_format": fmt,
+            "output_format": "wav",
             "bit_depth": bd,
             "channels": ch,
         }
 
-        ext = get_output_extension(fmt)
         tasks = []
         for f in self.input_files:
-            out = os.path.join(self.output_dir, Path(f).stem + ext)
+            out = os.path.join(self.output_dir, Path(f).stem + ".wav")
             tasks.append((f, out, params))
 
         total = len(tasks)
@@ -554,3 +539,8 @@ class App(ctk.CTk):
 
     def _safe_time(self, text):
         self.after(0, lambda: self.time_label.configure(text=text))
+
+
+if __name__ == "__main__":
+    app = App()
+    app.mainloop()
